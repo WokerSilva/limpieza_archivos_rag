@@ -9,6 +9,8 @@ os.environ["HF_HUB_DISABLE_SYMLINKS"] = "1"
 
 from src.ingest.discover_files import process_ingestion
 from src.flows.process_folder import process_staging_files
+from src.bundle.builder import create_bundles
+from src.utils.cleaner import clean_environment
 
 # Cargar variables de entorno
 load_dotenv()
@@ -80,6 +82,32 @@ def process():
     process_staging_files()
 
 
+
+@app.command()
+def bundle():
+    """
+    Fase 5 del pipeline: Une los archivos Markdown interactuando con el usuario para no exceder límites del GPT.
+    """
+    create_bundles()
+
+@app.command()
+def clear(
+    force: bool = typer.Option(False, "--force", "-f", help="Fuerza la limpieza sin pedir confirmación.")
+):
+    """
+    Limpia las carpetas de staging, output y cache para iniciar un proceso en limpio.
+    Tus archivos originales en 'ingest' están seguros.
+    """
+    console.print("[bold red]Iniciando limpieza del entorno de trabajo...[/bold red]")
+    
+    if not force:
+        # Medida de seguridad
+        confirm = typer.confirm("¿Estás seguro de que deseas borrar todos los archivos procesados?")
+        if not confirm:
+            console.print("[yellow]Operación cancelada.[/yellow]")
+            raise typer.Abort()
+            
+    clean_environment()
 
 if __name__ == "__main__":
     app()
