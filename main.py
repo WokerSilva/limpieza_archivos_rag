@@ -2,6 +2,11 @@ import typer
 from rich.console import Console
 from dotenv import load_dotenv
 import os
+
+# --- FIX PARA WINDOWS: Desactivar symlinks de HuggingFace ---
+os.environ["HF_HUB_DISABLE_SYMLINKS_WARNING"] = "1"
+os.environ["HF_HUB_DISABLE_SYMLINKS"] = "1"
+
 from src.ingest.discover_files import process_ingestion
 from src.flows.process_folder import process_staging_files
 

@@ -3,7 +3,7 @@ from pathlib import Path
 from rich.console import Console
 
 from src.utils.paths import STAGING_DIR, OUTPUT_DIR
-from src.extractors.doc_extractor import extract_with_docling
+from src.extractors.doc_extractor import extract_with_pymupdf
 
 console = Console()
 
@@ -40,7 +40,7 @@ def process_staging_files():
         try:
             # Fase 3: Procesamiento de Documentos (PDF, DOCX)
             if ext in [".pdf", ".docx"]:
-                md_content = extract_with_docling(file_path)
+                md_content = extract_with_pymupdf(file_path)
                 
                 # Construir el nombre de salida (ej. Titulacion_hash.md)
                 out_name = f"{Path(staging_name).stem}.md"
