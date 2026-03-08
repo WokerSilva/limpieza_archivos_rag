@@ -4,6 +4,8 @@ from rich.console import Console
 
 from src.utils.paths import STAGING_DIR, OUTPUT_DIR
 from src.extractors.doc_extractor import extract_with_pymupdf
+# NUEVO: Importamos el extractor de hojas de cálculo
+from src.extractors.spreadsheet import process_spreadsheet 
 
 console = Console()
 
@@ -23,6 +25,7 @@ def process_staging_files():
         return
 
     md_out_dir = OUTPUT_DIR / "individuales" / "md"
+    json_out_dir = OUTPUT_DIR / "individuales" / "json"
 
     console.print(f"[bold blue]Iniciando procesamiento de {len(manifest)} archivos...[/bold blue]\n")
 
@@ -37,26 +40,44 @@ def process_staging_files():
 
         console.print(f"[bold cyan]Procesando:[/bold cyan] {staging_name}")
 
+        # Inyectar trazabilidad al inicio de todos los archivos
+        header = f"---\nOrigen: {item['original_name']}\nCarpeta: {item['original_folder']}\nHash: {item['hash']}\n---\n\n"
+        base_out_name = Path(staging_name).stem
+
         try:
-            # Fase 3: Procesamiento de Documentos (PDF, DOCX)
+            # FASE 3: Documentos de Texto (PDF, DOCX)
             if ext in [".pdf", ".docx"]:
                 md_content = extract_with_pymupdf(file_path)
                 
-                # Construir el nombre de salida (ej. Titulacion_hash.md)
-                out_name = f"{Path(staging_name).stem}.md"
-                out_path = md_out_dir / out_name
-                
-                # Inyectar trazabilidad al inicio del Markdown
-                header = f"---\nOrigen: {item['original_name']}\nCarpeta: {item['original_folder']}\nHash: {item['hash']}\n---\n\n"
-                
+                out_path = md_out_dir / f"{base_out_name}.md"
                 with open(out_path, "w", encoding="utf-8") as f:
                     f.write(header + md_content)
                     
-                console.print(f"  [green]✔ Extracción completada. Guardado en: {out_name}[/green]\n")
+                console.print(f"  [green]✔ Extracción PDF/DOCX completada. Guardado en: {out_path.name}[/green]\n")
                 
-            # Fase 4: Preparación para Datos Tabulares
+            # FASE 4: Datos Tabulares (Excel, CSV)
             elif ext in [".xlsx", ".csv"]:
-                console.print(f"  [yellow]⚙️ Archivo tabular detectado. Se procesará mediante flujos de Pandas en la Fase 4.[/yellow]\n")
+                results = process_spreadsheet(file_path)
+                
+                # 1. Guardar el Markdown (Resumen o Tabla Completa)
+                md_path = md_out_dir / f"{base_out_name}.md"
+                with open(md_path, "w", encoding="utf-8") as f:
+                    f.write(header + results["markdown"])
+                
+                # 2. Guardar el JSON (Estructura de auditoría y análisis)
+                json_path = json_out_dir / f"{base_out_name}.json"
+                # Añadimos los metadatos al JSON también
+                final_json = {
+                    "metadata": {
+                        "origen": item["original_name"],
+                        "hash": item["hash"]
+                    },
+                    "data": results["json_data"]
+                }
+                with open(json_path, "w", encoding="utf-8") as f:
+                    json.dump(final_json, f, indent=4, ensure_ascii=False)
+                    
+                console.print(f"  [green]✔ Extracción Tabular completada. Generados: .md y .json[/green]\n")
             
             else:
                 console.print(f"  [yellow]⚠️ Extensión no soportada en este flujo: {ext}[/yellow]\n")
