@@ -3,7 +3,7 @@ from rich.console import Console
 from dotenv import load_dotenv
 import os
 from src.ingest.discover_files import process_ingestion
-
+from src.flows.process_folder import process_staging_files
 
 # Cargar variables de entorno
 load_dotenv()
@@ -66,6 +66,15 @@ def ingest(
     
     # Ejecutamos la lógica real
     process_ingestion(folder_name=folder, all_folders=all)
+
+@app.command()
+def process():
+    """
+    Fase 2 y 3 del pipeline: Extrae, normaliza y renderiza los archivos desde staging.
+    """
+    process_staging_files()
+
+
 
 if __name__ == "__main__":
     app()
