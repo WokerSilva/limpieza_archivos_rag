@@ -75,7 +75,7 @@ def process_staging_files():
                     "data": results["json_data"]
                 }
                 with open(json_path, "w", encoding="utf-8") as f:
-                    json.dump(final_json, f, indent=4, ensure_ascii=False)
+                    json.dump(final_json, f, indent=4, ensure_ascii=False, default=str)
                     
                 console.print(f"  [green]✔ Extracción Tabular completada. Generados: .md y .json[/green]\n")
             
