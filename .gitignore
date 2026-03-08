@@ -1,0 +1,21 @@
+# Entornos virtuales
+venv/
+.env
+.venv/
+__pycache__/
+*.pyc
+
+# Directorio de datos
+data/
+
+# Logs 
+*.log
+logs/
+
+# IDEs
+.vscode/
+.idea/
+
+# OS
+.DS_Store
+Thumbs.db
