@@ -1,0 +1,18 @@
+project:
+  name: "limpieza_archivos_rag"
+  version: "0.1.0"
+
+supported_formats:
+  pdf: [".pdf"]
+  word: [".docx"]
+  excel: [".xlsx", ".csv"]
+
+limits:
+  # Límite sugerido por archivo final para GPT (en Megabytes)
+  max_bundle_size_mb: 45.0
+  # Límite estimado preventivo de caracteres por bundle
+  max_bundle_chars: 500000
+
+rendering:
+  excel_large_sheet_threshold_rows: 500 # Si tiene más de 500 filas, pasa directo a JSONL
+  extract_images: true
