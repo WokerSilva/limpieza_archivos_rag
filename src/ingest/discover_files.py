@@ -1,5 +1,7 @@
 import shutil
 import json
+import unicodedata
+import re
 from pathlib import Path
 from rich.console import Console
 
@@ -8,16 +10,27 @@ from src.utils.hashing import calculate_file_hash
 
 console = Console()
 
-# Extensiones permitidas en esta fase V1
 SUPPORTED_EXTENSIONS = {".pdf", ".docx", ".xlsx", ".csv"}
 
+def sanitize_filename(filename: str) -> str:
+    """
+    Limpia el nombre del archivo: quita acentos, la letra ñ y caracteres especiales,
+    y reemplaza espacios por guiones bajos para evitar errores en motores C/C++.
+    """
+    # Descompone los caracteres (ej. 'ó' se vuelve 'o' + '´')
+    nfd_form = unicodedata.normalize('NFD', filename)
+    # Filtra solo los caracteres ASCII (quita los acentos visuales)
+    without_accents = nfd_form.encode('ascii', 'ignore').decode('utf-8')
+    # Reemplaza todo lo que no sea alfanumérico, punto o guion por guiones bajos
+    safe_name = re.sub(r'[^a-zA-Z0-9_\-\.]', '_', without_accents)
+    return safe_name
+
 def process_ingestion(folder_name: str = None, all_folders: bool = False):
-    """Descubre, valida y mueve archivos de ingest a staging."""
+    """Descubre, valida y mueve archivos de ingest a staging sanitizando sus nombres."""
     ensure_directories()
     
     target_dirs = []
     if all_folders:
-        # Iterar sobre todas las subcarpetas de ingest/
         target_dirs = [d for d in INGEST_DIR.iterdir() if d.is_dir()]
     elif folder_name:
         target_dir = INGEST_DIR / folder_name
@@ -40,11 +53,14 @@ def process_ingestion(folder_name: str = None, all_folders: bool = False):
         for file_path in directory.rglob("*"):
             if file_path.is_file() and file_path.suffix.lower() in SUPPORTED_EXTENSIONS:
                 file_hash = calculate_file_hash(file_path)
-                # Inyectamos el inicio del hash al nombre para garantizar unicidad en staging
-                safe_name = f"{file_path.stem}_{file_hash[:8]}{file_path.suffix.lower()}"
+                
+                # 1. Obtenemos el nombre base (sin extensión) y lo sanitizamos
+                clean_stem = sanitize_filename(file_path.stem)
+                
+                # 2. Construimos el nombre seguro para staging
+                safe_name = f"{clean_stem}_{file_hash[:8]}{file_path.suffix.lower()}"
                 dest_path = staging_index / safe_name
                 
-                # Control de Idempotencia: Si ya está en staging, no copiamos de nuevo
                 if not dest_path.exists():
                     shutil.copy2(file_path, dest_path)
                     status = "Copiado a staging"
@@ -61,14 +77,12 @@ def process_ingestion(folder_name: str = None, all_folders: bool = False):
                     "extension": file_path.suffix.lower(),
                     "status": status
                 })
-                console.print(f"  [{color}]✔ {file_path.name}[/{color}] -> {status}")
+                console.print(f"  [{color}]✔ {file_path.name}[/{color}] -> {status} como {safe_name}")
 
-    # Escribir el manifiesto de la ingesta
     if manifest:
         manifest_path = STAGING_DIR / "latest_ingest_manifest.json"
         with open(manifest_path, "w", encoding="utf-8") as f:
             json.dump(manifest, f, indent=4, ensure_ascii=False)
         console.print(f"\n[bold green]Ingesta completada. {len(manifest)} archivos documentados en staging.[/bold green]")
-        console.print(f"[dim]Manifiesto guardado en: {manifest_path}[/dim]")
     else:
         console.print("[yellow]No se encontraron archivos compatibles para procesar.[/yellow]")
