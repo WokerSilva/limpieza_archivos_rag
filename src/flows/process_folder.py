@@ -3,7 +3,7 @@ from pathlib import Path
 from rich.console import Console
 
 from src.utils.paths import STAGING_DIR, OUTPUT_DIR
-from src.extractors.doc_extractor import extract_with_paddle_vision
+from src.extractors.doc_extractor import extract_with_hybrid_engine
 # NUEVO: Importamos el extractor de hojas de cálculo
 from src.extractors.spreadsheet import process_spreadsheet 
 
@@ -47,7 +47,8 @@ def process_staging_files():
         try:
             # FASE 3: Documentos de Texto (PDF, DOCX)
             if ext in [".pdf", ".docx"]:
-                md_content = extract_with_paddle_vision(file_path)
+                # FIX: Llamamos al nuevo motor híbrido
+                md_content = extract_with_hybrid_engine(file_path)
                 
                 out_path = md_out_dir / f"{base_out_name}.md"
                 with open(out_path, "w", encoding="utf-8") as f:
