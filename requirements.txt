@@ -21,3 +21,9 @@ pytesseract>=0.3.10
 
 # --- Pruebas y Calidad ---
 pytest>=7.4.0c
+
+# --- Robustecimiento (Visión Local Corporativa) ---
+paddleocr>=2.7.0
+paddlepaddle>=2.5.0    # O usar paddlepaddle-gpu si tienes tarjeta NVIDIA
+opencv-python>=4.8.0
+shapely>=2.0.0
